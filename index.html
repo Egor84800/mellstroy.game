@@ -431,7 +431,13 @@
     </div>
 
     <script>
-        const symbols = ['mell', '🍋', '💎'];
+        // Теперь только 3 символа: Mell, Лимон и Алмаз
+        const symbols = [
+            { id: 0, display: 'mell', type: 'image' },      // 0 - Mell картинка
+            { id: 1, display: '🍋', type: 'emoji' },        // 1 - Лимон
+            { id: 2, display: '💎', type: 'emoji' }         // 2 - Алмаз
+        ];
+
         let isSpinning = false;
         let soundEnabled = true;
         const spinSound = document.getElementById('spinSound');
@@ -479,12 +485,15 @@
             spinSound.currentTime = 0;
         }
 
-        // Функция для отображения символа
-        function displaySymbol(symbol, element) {
-            if (symbol === 'mell') {
+        // Функция для отображения символа по ID
+        function displaySymbol(symbolId, element) {
+            const symbol = symbols.find(s => s.id === symbolId);
+            if (!symbol) return;
+
+            if (symbol.type === 'image' && symbol.display === 'mell') {
                 element.innerHTML = '<img src="мелл.png" class="mell-image" alt="Mell">';
             } else {
-                element.innerHTML = `<div class="slot-symbol">${symbol}</div>`;
+                element.innerHTML = `<div class="slot-symbol">${symbol.display}</div>`;
             }
         }
 
@@ -509,65 +518,67 @@
                 { id: 'slot3', element: document.getElementById('slot3') }
             ];
 
+            // Генерируем финальные числа для каждого слота
+            const finalNumbers = [
+                Math.floor(Math.random() * symbols.length),
+                Math.floor(Math.random() * symbols.length),
+                Math.floor(Math.random() * symbols.length)
+            ];
+
             // Запускаем вращение ВСЕХ барабанов одновременно
-            slots.forEach(slot => {
+            slots.forEach((slot, index) => {
                 const slotElement = slot.element;
-                const symbolElement = slotElement;
 
                 // Запускаем анимацию вращения
                 slotElement.classList.add('spinning');
 
                 // Меняем символы во время вращения
                 let spinCount = 0;
-                const maxSpins = 40; // Увеличили количество смен символов для 5 секунд
+                const maxSpins = 40;
                 const spinInterval = setInterval(() => {
-                    const randomSymbol = symbols[Math.floor(Math.random() * symbols.length)];
-                    displaySymbol(randomSymbol, symbolElement);
+                    // Во время вращения показываем случайные символы
+                    const randomSymbolId = Math.floor(Math.random() * symbols.length);
+                    displaySymbol(randomSymbolId, slotElement);
                     spinCount++;
 
                     if (spinCount >= maxSpins) {
                         clearInterval(spinInterval);
+                        // В конце показываем финальный символ
+                        displaySymbol(finalNumbers[index], slotElement);
                     }
-                }, 125); // Увеличили интервал для 5-секундного вращения
+                }, 125);
             });
 
             // Останавливаем ВСЕ барабаны одновременно через 5 секунд
             setTimeout(() => {
-                const results = [];
-
                 slots.forEach(slot => {
-                    const slotElement = slot.element;
-                    const symbolElement = slotElement;
-
-                    // Устанавливаем финальный символ
-                    const finalSymbol = symbols[Math.floor(Math.random() * symbols.length)];
-                    displaySymbol(finalSymbol, symbolElement);
-                    results.push(finalSymbol);
-
                     // Останавливаем анимацию
-                    slotElement.classList.remove('spinning');
+                    slot.element.classList.remove('spinning');
                 });
 
                 // Останавливаем звук
                 stopSpinSound();
 
-                // Проверяем результат
-                checkWin(results);
+                // Проверяем результат по ЧИСЛАМ
+                checkWin(finalNumbers);
                 isSpinning = false;
                 spinButton.disabled = false;
 
-            }, 5000); // Увеличили время вращения до 5 секунд
+            }, 5000);
         }
 
-        function checkWin(results) {
+        function checkWin(finalNumbers) {
             const resultElement = document.getElementById('result');
-            const allSame = results.every(symbol => symbol === results[0]);
+
+            // Проверяем, все ли числа одинаковые
+            const allSame = finalNumbers.every(number => number === finalNumbers[0]);
 
             if (allSame) {
-                if (results[0] === 'mell') {
+                const winningSymbol = symbols.find(s => s.id === finalNumbers[0]);
+                if (winningSymbol.display === 'mell') {
                     resultElement.className = 'result win-special';
                     resultElement.innerHTML = '🏠 СЮДА, ВЫ ВЫИГРАЛИ ХАТУ ОТ МЕЛЛСТРОЯ! 🏠<br>🎉 MELL ДЖЕКПОТ! 🎉';
-                } else if (results[0] === '🍋') {
+                } else if (winningSymbol.display === '🍋') {
                     resultElement.className = 'result win-special';
                     resultElement.innerHTML = '🏠 СЮДА, ВЫ ВЫИГРАЛИ ХАТУ ОТ МЕЛЛСТРОЯ! 🏠<br>🍋 ТРИ ЛИМОНА! 🍋';
                 } else {
@@ -578,6 +589,10 @@
                 resultElement.className = 'result lose';
                 resultElement.innerHTML = '😎 ПОХУЙ, ДОДЕП';
             }
+
+            // Для отладки - показываем какие числа выпали
+            console.log('Выпавшие числа:', finalNumbers);
+            console.log('Символы:', finalNumbers.map(num => symbols.find(s => s.id === num).display));
         }
 
         // Инициализация при загрузке
